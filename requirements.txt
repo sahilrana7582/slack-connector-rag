@@ -1,0 +1,11 @@
+slack-sdk
+langchain
+langgraph
+langchain-openai
+langchain-community
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+python-dotenv
+httpx
