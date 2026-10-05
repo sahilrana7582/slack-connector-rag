@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.dependencies import RagDep, SlackDep
+from app.dependencies import RagDep, SlackServiceDep
 from app.models.document import Document
 from app.models.rag import (
     IngestResponse,
@@ -10,14 +10,14 @@ from app.models.rag import (
 )
 
 # The RAG workflow: ingest -> inspect -> query.
-# Slack is only reached through the connector, never through the Slack routes.
+# Slack is only reached through SlackService, never through the Slack routes.
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 
 @router.post("/ingest/slack")
 def ingest_slack(
     body: IngestSlackRequest,
-    slack: SlackDep,
+    slack: SlackServiceDep,
     rag: RagDep,
 ) -> IngestResponse:
     documents = slack.fetch_documents(body.channel_id, body.limit)

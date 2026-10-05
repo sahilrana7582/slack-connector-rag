@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 
-from app.dependencies import SlackDep
+from app.dependencies import SlackConnectorDep
 from app.models.slack import SlackChannel, SlackFile, SlackMessage
 
 # Raw look at what Slack returns. Nothing here touches the RAG side.
@@ -10,14 +10,14 @@ router = APIRouter(prefix="/slack", tags=["slack"])
 
 
 @router.get("/channels")
-def list_channels(slack: SlackDep) -> list[SlackChannel]:
+def list_channels(slack: SlackConnectorDep) -> list[SlackChannel]:
     return slack.list_channels()
 
 
 @router.get("/channels/{channel_id}/messages")
 def get_messages(
     channel_id: str,
-    slack: SlackDep,
+    slack: SlackConnectorDep,
     limit: int = Query(20, ge=1, le=200),
 ) -> list[SlackMessage]:
     return slack.get_messages(channel_id, limit)
@@ -26,7 +26,7 @@ def get_messages(
 def get_messages(
     channel_id: str,
     thread_ts: str,
-    slack: SlackDep,
+    slack: SlackConnectorDep,
     limit: int = Query(20, ge=1, le=200),
 ) -> list[SlackMessage]:
     return slack.get_thread_replies(channel_id, thread_ts=thread_ts)
@@ -36,7 +36,7 @@ def get_messages(
 @router.get("/channels/{channel_id}/files")
 def list_files(
     channel_id: str,
-    slack: SlackDep,
+    slack: SlackConnectorDep,
     limit: int = Query(20, ge=1, le=200),
 ) -> list[SlackFile]:
     return slack.list_files(channel_id, limit)
