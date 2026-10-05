@@ -1,18 +1,24 @@
-import os
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from slack_sdk.errors import SlackApiError
 
-from dotenv import load_dotenv
-from slack_sdk import WebClient
+from app.routes.routes import api_router
+
+app = FastAPI(title="Slack Connector RAG")
+app.include_router(api_router)
 
 
-load_dotenv()
+@app.exception_handler(SlackApiError)
+def handle_slack_error(request: Request, exc: SlackApiError) -> JSONResponse:
+    error = exc.response.get("error", "unknown_error")
+    status_code = 404 if error == "channel_not_found" else 502
+    return JSONResponse(status_code=status_code, content={"detail": f"Slack error: {error}"})
 
-token = os.environ["SLACK_BOT_TOKEN"]
 
-client = WebClient(token=token)
+@app.get("/health", tags=["meta"])
+def health() -> dict[str, str]:
+    return {"status": "ok"}
 
-response = client.conversations_list(
-    types="public_channel,private_channel",
-    limit=100,
-)
-
-print(response.data)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", reload=True)
