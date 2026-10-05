@@ -1,5 +1,5 @@
 from typing import Optional
-
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 
@@ -25,6 +25,12 @@ class SlackMessage(BaseModel):
     ts: str
     user: Optional[str] = None
     text: str = ""
-    thread_ts: Optional[str] = None
+    ts: Optional[str] = None
     reply_count: int = 0
     files: list[SlackFile] = Field(default_factory=list)
+    @property
+    def timestamp(self) -> datetime:
+        return datetime.fromtimestamp(
+            float(self.ts),
+            tz=timezone.utc,
+        )

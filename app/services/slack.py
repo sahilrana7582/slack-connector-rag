@@ -36,7 +36,7 @@ class SlackService:
                 "source": "slack",
                 "channel_id": channel_id,
                 "user_id": message.user,
-                "timestamp": message.ts,
+                "timestamp": message.timestamp,
                 "type": "message",
             },
         )
@@ -44,9 +44,18 @@ class SlackService:
     def _thread_document(self, channel_id: str, message: SlackMessage) -> Document:
         replies = self._connector.get_thread_replies(
             channel_id,
-            message.thread_ts or message.ts,
+            message.ts or message.thread_ts
         )
-        content = "\n\n".join(r.text.strip() for r in replies if r.text.strip())
+        content = "\n\n".join(
+            (
+                f"user_id={r.user} "
+                f"ts={r.ts}] "
+                f"timestamp={r.timestamp}] "
+                f"{r.text.strip()}"
+            )
+            for r in replies
+            if r.text.strip()
+        )
 
         return Document(
             id=f"slack:{channel_id}:{message.ts}",
@@ -55,7 +64,7 @@ class SlackService:
                 "source": "slack",
                 "channel_id": channel_id,
                 "user_id": message.user,
-                "timestamp": message.ts,
+                "timestamp": message.timestamp,
                 "type": "thread",
                 "reply_count": message.reply_count,
             },
