@@ -26,4 +26,5 @@ class SlackMessage(BaseModel):
     user: Optional[str] = None
     text: str = ""
     thread_ts: Optional[str] = None
+    reply_count: int = 0
     files: list[SlackFile] = Field(default_factory=list)

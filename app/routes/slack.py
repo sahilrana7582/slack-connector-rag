@@ -22,6 +22,16 @@ def get_messages(
 ) -> list[SlackMessage]:
     return slack.get_messages(channel_id, limit)
 
+@router.get("/channels/{channel_id}/message/{thread_ts}")
+def get_messages(
+    channel_id: str,
+    thread_ts: str,
+    slack: SlackDep,
+    limit: int = Query(20, ge=1, le=200),
+) -> list[SlackMessage]:
+    return slack.get_thread_replies(channel_id, thread_ts=thread_ts)
+
+
 
 @router.get("/channels/{channel_id}/files")
 def list_files(

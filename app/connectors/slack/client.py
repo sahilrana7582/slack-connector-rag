@@ -24,20 +24,86 @@ class SlackConnector:
     def list_files(self, channel_id: str, limit: int = 20) -> list[SlackFile]:
         response = self._client.files_list(channel=channel_id, count=limit)
         return [SlackFile.model_validate(f) for f in response["files"]]
+    
+    def get_thread_replies(
+        self,
+        channel_id: str,
+        thread_ts: str,
+    ) -> list[SlackMessage]:
+        
+        response = self._client.conversations_replies(
+            channel=channel_id,
+            ts=thread_ts,
+            limit=100,
+        )
 
-    def fetch_documents(self, channel_id: str, limit: int = 100) -> list[Document]:
-        """Messages normalised into the Document shape the RAG side expects."""
         return [
-            Document(
-                id=f"slack:{channel_id}:{m.ts}",  # ts is only unique per channel
-                content=m.text,
-                metadata={
-                    "source": "slack",
-                    "channel_id": channel_id,
-                    "user_id": m.user,
-                    "timestamp": m.ts,
-                },
-            )
-            for m in self.get_messages(channel_id, limit)
-            if m.text.strip()
+            SlackMessage.model_validate(message)
+            for message in response["messages"]
         ]
+
+    def fetch_documents(
+        self,
+        channel_id: str,
+        limit: int = 100,
+    ) -> list[Document]:
+        """Convert Slack messages and threads into RAG Documents."""
+
+        documents = []
+
+        messages = self.get_messages(channel_id, limit)
+
+        for message in messages:
+
+            if not message.text.strip():
+                continue
+
+            # This message has replies.
+            if message.reply_count > 0:
+
+                print("Inside the Reply Count")
+
+                thread_messages = self.get_thread_replies(
+                    channel_id,
+                    message.thread_ts or message.ts,
+                )
+
+                content_parts = []
+
+                for thread_message in thread_messages:
+                    if thread_message.text.strip():
+                        content_parts.append(thread_message.text.strip())
+
+                content = "\n\n".join(content_parts)
+
+                document = Document(
+                    id=f"slack:{channel_id}:{message.ts}",
+                    content=content,
+                    metadata={
+                        "source": "slack",
+                        "channel_id": channel_id,
+                        "user_id": message.user,
+                        "timestamp": message.ts,
+                        "type": "thread",
+                        "reply_count": message.reply_count,
+                    },
+                )
+
+            # Normal Slack message
+            else:
+
+                document = Document(
+                    id=f"slack:{channel_id}:{message.ts}",
+                    content=message.text.strip(),
+                    metadata={
+                        "source": "slack",
+                        "channel_id": channel_id,
+                        "user_id": message.user,
+                        "timestamp": message.ts,
+                        "type": "message",
+                    },
+                )
+
+            documents.append(document)
+
+        return documents
